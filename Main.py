@@ -33,7 +33,7 @@ def save_latent(dir, epoch, latent, y,name):
         pickle.dump(data, handle, protocol=pickle.HIGHEST_PROTOCOL)
 
 
-def get_optim(optiodel, learning_rate):
+def get_optim(optimze, model, learning_rate):
     if optimze == 'Adam':
         optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate)
     elif optimze == 'SGD':
