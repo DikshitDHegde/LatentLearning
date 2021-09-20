@@ -20,6 +20,7 @@ import utils
 from config import config
 from Dataloader import dataSetFn, loadData
 from Models import Model
+from loss import reconLoss
 
 # from pytorch_msssim import SSIM
 
@@ -32,7 +33,7 @@ def save_latent(dir, epoch, latent, y,name):
         pickle.dump(data, handle, protocol=pickle.HIGHEST_PROTOCOL)
 
 
-def get_optim(optimze, model, learning_rate):
+def get_optim(optiodel, learning_rate):
     if optimze == 'Adam':
         optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate)
     elif optimze == 'SGD':
@@ -44,8 +45,8 @@ def get_optim(optimze, model, learning_rate):
     return optimizer
 
 
-use_gpu = torch.cuda.is_available()
-# use_gpu = False
+# use_gpu = torch.cuda.is_available()
+use_gpu = False
 if use_gpu:
     device = "cuda"
     print(" USING CUDA :)")
@@ -57,7 +58,9 @@ batchsize = 512
 optimizer = "Adam"
 # optimizer = "SGD"
 lr = 1e-3
-dataset = loadData("/home/cvg-ws2/Desktop/Dikshit/FashionMNIST_Combined.npz")
+# dataset = loadData("/home/cvg-ws2/Desktop/Dikshit/FashionMNIST_Combined.npz")
+dataset = loadData("/home/dikshit/DATA/FashionMNIST/FashionMNIST_Combined.npz")
+
 
 
 args = config()
@@ -66,25 +69,25 @@ utils.set_seed_globally(0, use_gpu)
 model = Model(
     input_= 784,
     encoderLayers=[500,500,2000,128],
-    decoderLayers=[10,2000,500,500,784]
+    decoderLayers=[10,2000,500,500,784*2]
 ).to(device)
 
-trainSet = dataSetFn(dataset=dataset, transform_original=transforms.ToTensor())
+trainSet = dataSetFn(dataset=dataset, transform_original= transforms.Compose([transforms.ToTensor()]))
 trainLoader = DataLoader(trainSet, batch_size=batchsize, shuffle=True,
                          num_workers=10, pin_memory=False, prefetch_factor=batchsize//4)
 # print("DATALOADER")
 optimize = get_optim(optimizer, model, lr)
 # criterion_con = nn.CrossEntropyLoss().to(device)
-criterion_mse = nn.MSELoss().to(device)
+criterion_mse = reconLoss(in_channels=1, use_ssim=True, alpha=0.75).to(device)
 
 tb = SummaryWriter(
     "./log/FMNIST/BatchSize {} LR {} Optimizer {}".format(batchsize, lr, optimizer))
 
 
 for epoch in range(args.epochs):
-    # emb_loss,recon_loss = utils.pretrain(args, model, trainLoader,
-    #                           device, optimize, criterion_mse, epoch)
-    emb_loss,recon_loss = utils.pretrainVAE(args, model, trainLoader, device, optimize, criterion_mse, epoch)
+    emb_loss,recon_loss = utils.pretrain(args, model, trainLoader,
+                              device, optimize, criterion_mse, epoch)
+    # emb_loss,recon_loss = utils.pretrainVAE(args, model, trainLoader, device, optimize, criterion_mse, epoch)
     tb.add_scalar("Emb loss", emb_loss, global_step=epoch)
     tb.add_scalar("Recon loss", recon_loss, global_step=epoch)
     if (epoch+1) % 10 == 0:

@@ -86,7 +86,7 @@ class Model(nn.Module):
         self.var2 = nn.Linear(self.mid, self.mid)
 
     def forward(self, x):
-
+        x = x.reshape(x.shape[0],-1)
         z = self.VAEncoder(x)
 
         z = self.latent1(z)
@@ -112,7 +112,7 @@ class Model(nn.Module):
         # copy_weights(self.ClaEncoder2, self.ClaEncoder1)
         # copy_weights(self.latent2, self.latent3)
         cprob1 = self.latent1(self.ClaEncoder2(x))
-
+        recon = recon.reshape(x.size(0),1,28,28)
         return z, recon, cprob1, cprob2
 
 

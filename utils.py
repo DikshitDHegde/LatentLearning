@@ -90,14 +90,14 @@ def pretrain(args,model,pretrain_loader,device,optimizer,criterion_mse,epoch):
     total_recon_loss = 0
     total_emb_loss = 0
     for idx ,(x,_) in loop:
-        x = x.reshape(x.shape[0],-1)
+        x = x.to(device)
         optimizer.zero_grad()
         z, recon, prob1, prob2 = model(x)
 
         rloss = criterion_mse(recon,x)
         rloss.backward(retain_graph=True)
 
-        pseudo_labels = torch.softmax(prob1/args.thres , dim=-1)
+        pseudo_labels = torch.softmax(prob1/0.8, dim=-1)
         _,pseudo_labels = torch.max(pseudo_labels,dim=-1)
         EntropyLoss = F.cross_entropy(prob2,pseudo_labels)
         EntropyLoss.backward()
